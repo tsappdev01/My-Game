@@ -217,12 +217,15 @@ object QuestionEngine {
             test(a) -> a to b
             else -> null
         }
+        // A skip-count hint stops one step short so it never shows the answer.
+        fun skipHint(): String = if (a <= 1) "" else (1 until a).joinToString(", ") { f(b * it) } + ", …"
         if (ans <= MAX_TALLY) {
             val skips = (1..a).joinToString(", ") { f(b * it) }
             return Method(
                 "Groups of tally marks",
                 listOf("Draw $a groups of $b marks.", "Skip count by ${b}s: $skips.", "$a × $b = $ans"),
                 tally = Tally(List(a.toInt()) { b.toInt() }),
+                hint = listOf("Draw $a groups of $b marks.", "Skip count by ${b}s: ${skipHint()}", "$a × $b = ?"),
             )
         }
         pick { it == 9L }?.let { (_, n) ->
@@ -269,7 +272,11 @@ object QuestionEngine {
             )
         }
         if (a < 10) {
-            return Method("Skip count", listOf("$a × $b means $a groups of $b.", "Count in ${b}s: " + (1..a).joinToString(", ") { f(b * it) } + ".", "$a × $b = $ans"))
+            return Method(
+                "Skip count",
+                listOf("$a × $b means $a groups of $b.", "Count in ${b}s: " + (1..a).joinToString(", ") { f(b * it) } + ".", "$a × $b = $ans"),
+                hint = listOf("$a × $b means $a groups of $b.", "Count in ${b}s: ${skipHint()}", "$a × $b = ?"),
+            )
         }
         val parts = placeValueParts(b)
         if (parts.size == 1) {

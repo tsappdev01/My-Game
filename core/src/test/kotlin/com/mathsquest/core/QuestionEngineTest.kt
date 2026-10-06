@@ -98,6 +98,9 @@ class QuestionEngineTest {
             val last = if (q.operation == Operation.SUB || q.operation == Operation.DIV) q.steps[q.steps.size - 2] else q.steps.last()
             assertTrue("${q.technique}: $last should end with $answer", last.endsWith(answer))
             assertTrue("${q.technique}: hint must not end with the answer: ${q.hint}", !q.hint.last().endsWith("= $answer"))
+            // The answer must not appear as a result ("= 12") or at the end of a skip count ("8, 12").
+            val revealed = Regex("[=,]\\s*" + Regex.escape(answer) + "(?![\\d,])")
+            assertTrue("${q.technique}: hint must not reveal $answer: ${q.hint}", q.hint.none { revealed.containsMatchIn(it) })
             assertTrue(q.technique.isNotBlank())
         }
     }
