@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -153,13 +154,13 @@ private fun Keypad(onDigit: (Char) -> Unit, onDelete: () -> Unit, onCheck: () ->
     Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         rows.forEach { r ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                r.forEach { d -> Key(Modifier.weight(1f), MQ.Blue, "Digit $d", enabled, { onDigit(d) }) { KeyText("$d") } }
+                r.forEach { d -> Key(Modifier.weight(1f).testTag("key-$d"), MQ.Blue, "Digit $d", enabled, { onDigit(d) }) { KeyText("$d") } }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Key(Modifier.weight(1f), MQ.Red, "Delete digit", enabled, onDelete) { KeyText("⌫") }
-            Key(Modifier.weight(1f), MQ.Blue, "Digit 0", enabled, { onDigit('0') }) { KeyText("0") }
-            Key(Modifier.weight(1f), MQ.Green, "Check answer", enabled, onCheck) {
+            Key(Modifier.weight(1f).testTag("key-delete"), MQ.Red, "Delete digit", enabled, onDelete) { KeyText("⌫") }
+            Key(Modifier.weight(1f).testTag("key-0"), MQ.Blue, "Digit 0", enabled, { onDigit('0') }) { KeyText("0") }
+            Key(Modifier.weight(1f).testTag("key-check"), MQ.Green, "Check answer", enabled, onCheck) {
                 Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.height(32.dp).width(32.dp))
             }
         }
