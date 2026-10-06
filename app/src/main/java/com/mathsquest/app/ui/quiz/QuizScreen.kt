@@ -21,7 +21,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mathsquest.app.ui.components.ChunkyButton
 import com.mathsquest.app.ui.components.CoinIcon
 import com.mathsquest.app.ui.components.CoinPill
+import com.mathsquest.app.ui.components.ConfettiBurst
 import com.mathsquest.app.ui.components.Leo
 import com.mathsquest.app.ui.components.LeoFace
 import com.mathsquest.app.ui.components.LeoSays
@@ -60,12 +65,18 @@ fun QuizScreen(
     vm: QuizViewModel = hiltViewModel(),
 ) {
     val s by vm.state.collectAsStateWithLifecycle()
+    val haptics = LocalHapticFeedback.current
     BackHandler { onExit(s.childId) }
+    LaunchedEffect(s.celebrate) { if (s.celebrate > 0) haptics.performHapticFeedback(HapticFeedbackType.LongPress) }
     if (s.phase == Phase.DONE) {
-        Summary(s, onHome = { onExit(s.childId) }, onAgain = { onPlayAgain(s.childId, s.grade, s.topic.name, s.difficulty.level) })
+        Box(Modifier.fillMaxSize()) {
+            Summary(s, onHome = { onExit(s.childId) }, onAgain = { onPlayAgain(s.childId, s.grade, s.topic.name, s.difficulty.level) })
+            ConfettiBurst(s.celebrate, pieces = 110)
+        }
         return
     }
     val q = s.question
+    Box(Modifier.fillMaxSize()) {
     SkyScreen {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             RoundIconButton(onClick = { onExit(s.childId) }, contentDescription = "End quest", light = true) {
@@ -102,6 +113,33 @@ fun QuizScreen(
             Phase.REVEAL -> RevealPanel(s, onNext = vm::next)
             Phase.DONE -> Unit
         }
+    }
+    if (s.phase == Phase.RIGHT) ConfettiBurst(s.celebrate)
+    s.levelUp?.let { level -> LevelUpParty(level, s.celebrate, onClose = vm::dismissLevelUp) }
+    }
+}
+
+/** Full-screen party when the child reaches a new level. */
+@Composable
+private fun LevelUpParty(level: Int, trigger: Int, onClose: () -> Unit) {
+    BackHandler(onBack = onClose)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xCC0A2A5E))
+            .clickable(interactionSource = null, indication = null, onClick = {}),
+        contentAlignment = Alignment.Center,
+    ) {
+            WhiteCard(modifier = Modifier.padding(24.dp), spacing = 12.dp) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Leo(LeoFace.Proud, 150.dp, dance = trigger)
+                    Text("Level up!", fontSize = 40.sp, fontWeight = FontWeight.Bold, color = MQ.Purple)
+                    Text("You reached Level $level", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+                    Text("Keep solving to fill the next star bar.", style = MaterialTheme.typography.bodyLarge, color = MQ.Muted, textAlign = TextAlign.Center)
+                }
+                ChunkyButton("Keep going!", MQ.Purple, onClick = onClose)
+            }
+            ConfettiBurst(trigger, pieces = 140)
     }
 }
 
@@ -192,7 +230,7 @@ private fun RightPanel(s: QuizState, onNext: () -> Unit) {
         )
         Column(Modifier.padding(start = 18.dp, end = 18.dp, bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Leo(LeoFace.Cheering, 88.dp)
+                Leo(LeoFace.Cheering, 88.dp, dance = s.celebrate)
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CoinIcon(30.dp)
@@ -246,7 +284,7 @@ private fun Summary(s: QuizState, onHome: () -> Unit, onAgain: () -> Unit) {
     SkyScreen {
         WhiteCard(spacing = 14.dp) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Leo(LeoFace.Proud, 120.dp)
+                Leo(LeoFace.Proud, 120.dp, dance = s.celebrate)
                 Text(if (s.daily) "Challenge complete!" else "Quest complete!", style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
                 Text("${s.firstTryRight} of ${s.total} right first time", style = MaterialTheme.typography.titleLarge, color = Color(0xFF2F3F66))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

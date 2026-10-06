@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +37,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.mathsquest.app.data.repo.MathsQuestRepository
+import com.mathsquest.app.sound.SoundPlayer
+import com.mathsquest.app.ui.components.SpeakerIcon
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.mathsquest.app.ui.Args
 import com.mathsquest.app.ui.components.Avatar
 import com.mathsquest.app.ui.components.ChunkyButton
@@ -72,7 +78,15 @@ data class HomeState(
 )
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(handle: SavedStateHandle, repo: MathsQuestRepository) : ViewModel() {
+class HomeViewModel @Inject constructor(
+    handle: SavedStateHandle,
+    repo: MathsQuestRepository,
+    private val sound: SoundPlayer,
+) : ViewModel() {
+    val soundOn: StateFlow<Boolean> = sound.enabled
+
+    fun toggleSound() = sound.setEnabled(!sound.enabled.value)
+
     private val childId: Long = checkNotNull(handle[Args.CHILD_ID])
 
     val state: StateFlow<HomeState> = combine(
@@ -113,6 +127,7 @@ fun HomeScreen(
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val s by vm.state.collectAsStateWithLifecycle()
+    val soundOn by vm.soundOn.collectAsStateWithLifecycle()
     SkyScreen {
         WhiteCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -121,6 +136,16 @@ fun HomeScreen(
                     Text(s.name, style = MaterialTheme.typography.headlineMedium)
                     Text("Grade ${s.grade}", style = MaterialTheme.typography.bodyMedium, color = MQ.Muted)
                 }
+                val soundLabel = if (soundOn) "Sound on. Tap to turn sound off" else "Sound off. Tap to turn sound on"
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (soundOn) MQ.TintBlue else Color(0xFFE3EAF4))
+                        .clickable(role = Role.Switch, onClickLabel = soundLabel) { vm.toggleSound() }
+                        .semantics { contentDescription = soundLabel },
+                    contentAlignment = Alignment.Center,
+                ) { SpeakerIcon(soundOn, if (soundOn) MQ.Blue else MQ.Muted, Modifier.size(24.dp)) }
                 Text(
                     "Switch",
                     color = MQ.Blue,

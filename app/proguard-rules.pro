@@ -1,4 +1,1 @@
-# kotlinx.serialization DTOs used by Retrofit
--keepattributes *Annotation*, InnerClasses
--keepclassmembers class com.mathsquest.app.data.remote.** { *; }
--dontnote kotlinx.serialization.**
+# No custom rules needed: the app has no reflection-based serialization.

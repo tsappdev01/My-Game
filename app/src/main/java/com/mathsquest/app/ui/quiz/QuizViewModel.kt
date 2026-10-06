@@ -5,6 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mathsquest.app.data.repo.MathsQuestRepository
+import com.mathsquest.app.sound.SoundPlayer
+import com.mathsquest.app.sound.SoundPlayer.Sfx
 import com.mathsquest.app.ui.Args
 import com.mathsquest.core.CoinReason
 import com.mathsquest.core.CoinRules
@@ -14,6 +16,7 @@ import com.mathsquest.core.Question
 import com.mathsquest.core.QuestionEngine
 import com.mathsquest.core.Topic
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +50,10 @@ data class QuizState(
     val roundXp: Int = 0,
     val summaryNotes: List<String> = emptyList(),
     val perfect: Boolean = false,
+    /** Bumped on every celebration (right answer, round end) to trigger confetti and Leo's dance. */
+    val celebrate: Int = 0,
+    /** The new level when the last answer levelled the child up; shows the level-up party. */
+    val levelUp: Int? = null,
 ) {
     val answered: Int get() = index + if (phase == Phase.RIGHT || phase == Phase.REVEAL || phase == Phase.DONE) 1 else 0
 }
@@ -57,6 +64,7 @@ const val ROUND_LENGTH = 5
 class QuizViewModel @Inject constructor(
     handle: SavedStateHandle,
     private val repo: MathsQuestRepository,
+    private val sound: SoundPlayer,
 ) : ViewModel() {
     private val childId: Long = checkNotNull(handle[Args.CHILD_ID])
     private val daily: Boolean = handle[Args.DAILY] ?: false
@@ -113,8 +121,11 @@ class QuizViewModel @Inject constructor(
         }
     }
 
-    fun type(digit: Char) = _state.update { s ->
-        if (s.phase != Phase.ASK || s.typed.length >= 7 || (s.typed.isEmpty() && digit == '0')) s else s.copy(typed = s.typed + digit)
+    fun type(digit: Char) {
+        val s = _state.value
+        if (s.phase != Phase.ASK || s.typed.length >= 7 || (s.typed.isEmpty() && digit == '0')) return
+        sound.play(Sfx.TAP)
+        _state.update { it.copy(typed = it.typed + digit) }
     }
 
     fun delete() = _state.update { s -> if (s.phase != Phase.ASK) s else s.copy(typed = s.typed.dropLast(1)) }
@@ -127,12 +138,20 @@ class QuizViewModel @Inject constructor(
         val correct = s.typed.toLongOrNull() == q.answer
         _state.update { it.copy(phase = Phase.LOADING) }
         viewModelScope.launch {
+            val xpBefore = repo.child(childId)?.xp ?: 0
             val outcome = repo.recordAnswer(childId, q, s.attempt, correct, elapsed, daily)
             if (outcome != null) {
                 if (outcome.reason != CoinReason.NONE) reasons += outcome.reason
+                val newLevel = CoinRules.level(xpBefore + outcome.xp)
+                val levelledUp = newLevel > CoinRules.level(xpBefore)
+                sound.play(Sfx.CORRECT)
+                if (outcome.coins > 0) launch { delay(220); sound.play(Sfx.COIN) }
+                if (levelledUp) launch { delay(500); sound.play(Sfx.LEVEL_UP) }
                 _state.update {
                     it.copy(
                         phase = Phase.RIGHT,
+                        celebrate = it.celebrate + 1,
+                        levelUp = if (levelledUp) newLevel else null,
                         earned = outcome.coins,
                         xp = outcome.xp,
                         note = noteFor(outcome.reason, outcome.coins, q.grade),
@@ -142,10 +161,13 @@ class QuizViewModel @Inject constructor(
                     )
                 }
             } else {
+                sound.play(Sfx.WRONG)
                 _state.update { it.copy(phase = if (s.attempt == 1) Phase.WRONG else Phase.REVEAL) }
             }
         }
     }
+
+    fun dismissLevelUp() = _state.update { it.copy(levelUp = null) }
 
     fun retry() {
         viewModelScope.launch { show(_state.value.index, attempt = 2) }
@@ -168,8 +190,12 @@ class QuizViewModel @Inject constructor(
                     if (CoinReason.CAP in reasons) add("Your coin jar is full for this month. Your parent can make it bigger.")
                     if (CoinReason.RETRY in reasons) add("Second tries earn one coin less, so it pays to check before you tap.")
                 }
+                sound.play(Sfx.COMPLETE)
                 _state.update {
-                    it.copy(phase = Phase.DONE, perfect = perfect, summaryNotes = notes, roundCoins = it.roundCoins + result.bonusCoins)
+                    it.copy(
+                        phase = Phase.DONE, perfect = perfect, summaryNotes = notes, levelUp = null,
+                        roundCoins = it.roundCoins + result.bonusCoins, celebrate = it.celebrate + 1,
+                    )
                 }
             }
         }

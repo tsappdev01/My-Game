@@ -2,7 +2,7 @@
 
 A gamified maths practice app for Grades 3–9. Children solve questions, earn Gold Coins, and swap them for rewards a parent approves. Leo the lion cheers them on.
 
-**Stack:** Android · Kotlin · Jetpack Compose · MVVM · Hilt · Room · Retrofit. The ASP.NET Core API (Azure App Service + Azure SQL) comes next; V1 runs fully offline.
+**Stack:** Android · Kotlin · Jetpack Compose · MVVM · Hilt · Room. The app is fully offline: no server, no account, no internet permission.
 
 ## Get the APK
 
@@ -32,9 +32,11 @@ Requires JDK 17 and the Android SDK (API 35).
 | Path | What it holds |
 | --- | --- |
 | `core/` | Pure Kotlin, unit-tested: question engine, worked explanations and hints, coin rules, streaks, badges, Daily Challenge |
-| `app/src/main/java/com/mathsquest/app/data` | Room database (append-only coin ledger), repository, Retrofit API definition |
+| `app/src/main/java/com/mathsquest/app/data` | Room database (append-only coin ledger), repository, demo family |
+| `app/src/main/java/com/mathsquest/app/sound` | Sound effects player (sounds can be turned off on the home screen) |
 | `app/src/main/java/com/mathsquest/app/ui` | Compose screens and view models, one package per feature |
 | `tools/leo/` | Leo's 15 expressions as SVG fragments, plus the script that turns them into Android vector drawables |
+| `tools/sfx/` | Script that synthesises the sound effects (`python3 tools/sfx/make_sounds.py`) |
 
 ## Rules the app enforces
 

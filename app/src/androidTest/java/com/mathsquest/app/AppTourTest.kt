@@ -96,6 +96,7 @@ class AppTourTest {
                     tap("key-check")
                     waitFor("Correct!")
                     shot("correct")
+                    closeLevelUp()
                 }
                 1 -> {
                     val wrong = (q.answer + 1).toString()
@@ -115,6 +116,7 @@ class AppTourTest {
                     type(q.answer.toString())
                     tap("key-check")
                     waitFor("Correct!")
+                    closeLevelUp()
                 }
             }
             click(if (i == DailyChallenge.difficulties.size - 1) "See results" else "Next Question")
@@ -169,6 +171,17 @@ class AppTourTest {
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         count++
         File(dir, "%02d-%s.png".format(count, name)).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    private var levelUpShot = false
+
+    /** Musfira levels up during the Daily Challenge: capture the party once, then close it. */
+    private fun closeLevelUp() {
+        compose.waitForIdle()
+        if (compose.onAllNodesWithText("Level up!").fetchSemanticsNodes().isEmpty()) return
+        if (!levelUpShot) { shot("level-up"); levelUpShot = true }
+        click("Keep going!")
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Level up!").fetchSemanticsNodes().isEmpty() }
     }
 
     private fun waitFor(text: String, substring: Boolean = false) {
