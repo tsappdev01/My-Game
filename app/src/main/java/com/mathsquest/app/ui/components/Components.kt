@@ -80,14 +80,17 @@ fun WhiteCard(
     modifier: Modifier = Modifier,
     padding: Dp = 16.dp,
     spacing: Dp = 12.dp,
+    /** False lets children (such as flying numbers) draw outside the card while they move. */
+    clipContent: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val shape = RoundedCornerShape(26.dp)
     Column(
         modifier
             .fillMaxWidth()
-            .shadow(10.dp, RoundedCornerShape(26.dp), ambientColor = Color(0x2E0A3C82), spotColor = Color(0x2E0A3C82))
-            .clip(RoundedCornerShape(26.dp))
-            .background(Color.White)
+            .shadow(10.dp, shape, clip = clipContent, ambientColor = Color(0x2E0A3C82), spotColor = Color(0x2E0A3C82))
+            .then(if (clipContent) Modifier.clip(shape) else Modifier)
+            .background(Color.White, shape)
             .padding(padding),
         verticalArrangement = Arrangement.spacedBy(spacing),
         content = content,

@@ -167,6 +167,9 @@ class QuizViewModel @Inject constructor(
         }
     }
 
+    /** Coin-drop clink as each part of the question lands. */
+    fun playDrop() = sound.play(Sfx.DROP)
+
     fun dismissLevelUp() = _state.update { it.copy(levelUp = null) }
 
     fun retry() {

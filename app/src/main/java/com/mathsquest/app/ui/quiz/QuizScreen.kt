@@ -45,6 +45,9 @@ import com.mathsquest.app.ui.components.ChunkyButton
 import com.mathsquest.app.ui.components.CoinIcon
 import com.mathsquest.app.ui.components.CoinPill
 import com.mathsquest.app.ui.components.ConfettiBurst
+import com.mathsquest.app.ui.components.FlyIn
+import com.mathsquest.app.ui.components.TallyMarks
+import com.mathsquest.core.Tally
 import com.mathsquest.app.ui.components.Leo
 import com.mathsquest.app.ui.components.LeoFace
 import com.mathsquest.app.ui.components.LeoSays
@@ -93,14 +96,14 @@ fun QuizScreen(
             CoinPill("${s.worthCoins}")
         }
 
-        WhiteCard(spacing = 8.dp) {
+        WhiteCard(spacing = 8.dp, clipContent = false) {
             Text(
                 s.worthText,
                 color = Color(0xFF173A7A), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(999.dp)).background(MQ.TintBlue)
                     .padding(horizontal = 12.dp, vertical = 3.dp),
             )
-            if (q != null) Problem(q.operation, q.a, q.b, answerText(s), answerColour(s))
+            if (q != null) Problem(s.index, q.operation, q.a, q.b, answerText(s), answerColour(s), onLand = vm::playDrop)
         }
 
         when (s.phase) {
@@ -108,7 +111,7 @@ fun QuizScreen(
                 LeoSays(LeoFace.Focused, if (s.attempt > 1) "Use the hint. You can do it!" else "Take your time!", size = 70.dp)
                 Keypad(onDigit = vm::type, onDelete = vm::delete, onCheck = vm::check, enabled = s.phase == Phase.ASK)
             }
-            Phase.RIGHT -> RightPanel(s, onNext = vm::next)
+            Phase.RIGHT -> RightPanel(s, onNext = vm::next, onCoinLand = { if (s.earned > 0) vm.playDrop() })
             Phase.WRONG -> WrongPanel(s, onRetry = vm::retry)
             Phase.REVEAL -> RevealPanel(s, onNext = vm::next)
             Phase.DONE -> Unit
@@ -155,9 +158,13 @@ private fun answerColour(s: QuizState): Color = when {
     else -> Color(0xFF8796B8)
 }
 
-/** Column layout for +, − and ×; one line for ÷, as in the prototype. */
+/**
+ * Column layout for +, − and ×; one line for ÷. Each part flies in from a different side and lands
+ * with a coin clink: first number from the top-left corner, the sign from the left, the second number
+ * from the right, and the answer from the bottom. Replays for each new question ([key]).
+ */
 @Composable
-private fun Problem(op: Operation, a: Long, b: Long, answer: String, answerColour: Color) {
+private fun Problem(key: Any, op: Operation, a: Long, b: Long, answer: String, answerColour: Color, onLand: () -> Unit) {
     val fa = QuestionEngine.format(a)
     val fb = QuestionEngine.format(b)
     val longest = maxOf(fa.length, fb.length, answer.length)
@@ -166,21 +173,29 @@ private fun Problem(op: Operation, a: Long, b: Long, answer: String, answerColou
         longest > 6 -> 38.sp
         else -> 50.sp
     }
+    @Composable
+    fun Part(text: String, colour: Color = MQ.Ink) = Text(text, fontSize = size, fontWeight = FontWeight.Bold, color = colour)
+
     Box(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, contentAlignment = Alignment.Center) {
         if (op == Operation.DIV) {
-            Row(Modifier.padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("$fa ÷ $fb =", fontSize = size, fontWeight = FontWeight.Bold, color = MQ.Ink)
-                Text(answer, fontSize = size, fontWeight = FontWeight.Bold, color = answerColour)
+            Row(Modifier.padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                FlyIn(key, -1f, -1f, 0, onLand = onLand) { Part(fa) }
+                FlyIn(key, -1f, 0f, 220, onLand = onLand) { Part("÷") }
+                FlyIn(key, 1f, -1f, 440, onLand = onLand) { Part(fb) }
+                FlyIn(key, 1f, 0f, 660) { Part("=") }
+                FlyIn(key, 0f, 1f, 820, onLand = onLand) { Part(answer, answerColour) }
             }
         } else {
             Column(horizontalAlignment = Alignment.End) {
-                Text(fa, fontSize = size, fontWeight = FontWeight.Bold, color = MQ.Ink)
+                FlyIn(key, -1f, -1f, 0, onLand = onLand) { Part(fa) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(op.symbol, fontSize = size, fontWeight = FontWeight.Bold, color = MQ.Ink, modifier = Modifier.padding(end = 16.dp))
-                    Text(fb, fontSize = size, fontWeight = FontWeight.Bold, color = MQ.Ink)
+                    FlyIn(key, -1f, 0f, 220, Modifier.padding(end = 16.dp), onLand = onLand) { Part(op.symbol) }
+                    FlyIn(key, 1f, 0f, 440, onLand = onLand) { Part(fb) }
                 }
-                Box(Modifier.width((longest * size.value * 0.62f + 50).dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(MQ.Ink))
-                Text(answer, fontSize = size, fontWeight = FontWeight.Bold, color = answerColour)
+                FlyIn(key, 1f, 0f, 660) {
+                    Box(Modifier.width((longest * size.value * 0.62f + 50).dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(MQ.Ink))
+                }
+                FlyIn(key, 0f, 1f, 820, onLand = onLand) { Part(answer, answerColour) }
             }
         }
     }
@@ -222,7 +237,7 @@ private fun Key(modifier: Modifier, colour: Color, label: String, enabled: Boole
 private fun KeyText(text: String) = Text(text, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
 
 @Composable
-private fun RightPanel(s: QuizState, onNext: () -> Unit) {
+private fun RightPanel(s: QuizState, onNext: () -> Unit, onCoinLand: () -> Unit) {
     WhiteCard(padding = 0.dp, spacing = 10.dp, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
         Text(
             "Correct!", color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
@@ -232,11 +247,15 @@ private fun RightPanel(s: QuizState, onNext: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Leo(LeoFace.Cheering, 88.dp, dance = s.celebrate)
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CoinIcon(30.dp)
-                        Text("+${s.earned} ${if (s.earned == 1) "Coin" else "Coins"}", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MQ.Ink)
+                    FlyIn(s.celebrate, 1f, 1f, 150, onLand = onCoinLand) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CoinIcon(30.dp)
+                            Text("+${s.earned} ${if (s.earned == 1) "Coin" else "Coins"}", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MQ.Ink)
+                        }
                     }
-                    Text("+${s.xp} XP", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MQ.Purple)
+                    FlyIn(s.celebrate, 1f, 0f, 380) {
+                        Text("+${s.xp} XP", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MQ.Purple)
+                    }
                 }
             }
             s.note?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF2F3F66), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
@@ -253,10 +272,10 @@ private fun WrongPanel(s: QuizState, onRetry: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text("Almost!", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC42B2B))
                 Text("Let's work it out together.", style = MaterialTheme.typography.titleMedium)
-                Text("Leo has a hint for you", style = MaterialTheme.typography.labelMedium, color = MQ.DeepOrange)
+                Text("Leo has a clue for you", style = MaterialTheme.typography.labelMedium, color = MQ.DeepOrange)
             }
         }
-        Steps(s.question?.hint.orEmpty())
+        s.question?.let { q -> Clue(q.technique, q.tally, q.hint) }
         ChunkyButton("Try Again", MQ.Orange, onClick = onRetry)
     }
 }
@@ -266,9 +285,29 @@ private fun RevealPanel(s: QuizState, onNext: () -> Unit) {
     WhiteCard(modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
         Text("The answer is ${QuestionEngine.format(s.question!!.answer)}", style = MaterialTheme.typography.headlineSmall)
         Text("Here's how it works:", style = MaterialTheme.typography.labelMedium)
-        Steps(s.question.steps)
+        Clue(s.question.technique, s.question.tally, s.question.steps)
         ChunkyButton(if (s.index + 1 >= s.total) "See results" else "Next Question", MQ.Blue, onClick = onNext)
     }
+}
+
+/** The method's name ("Leo's trick"), a tally picture for small numbers, then the steps. */
+@Composable
+private fun Clue(technique: String, tally: Tally?, lines: List<String>) {
+    if (technique.isNotBlank()) {
+        Text(
+            "Leo's trick: $technique",
+            color = MQ.Purple,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 16.sp,
+            modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(Color(0xFFEDE6FF)).padding(horizontal = 12.dp, vertical = 5.dp),
+        )
+    }
+    if (tally != null) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFFFFFBEA)).padding(12.dp)) {
+            TallyMarks(tally)
+        }
+    }
+    Steps(lines)
 }
 
 @Composable

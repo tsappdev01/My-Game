@@ -69,6 +69,10 @@ def write(name, samples):
 C5, E5, G5, A5, C6, E6, G6, B6, C7 = 523.25, 659.25, 783.99, 880.0, 1046.5, 1318.5, 1568.0, 1975.5, 2093.0
 
 SOUNDS = {
+    # Coin dropping on a table: a bright metallic clink, then two smaller bounces.
+    'drop': mix(*[offset(mix(*[note(f, 0.16, v * amp, 'pure', attack=0.001, decay=0.035) for f, amp in
+                              ((2637.0, 1.0), (3951.1, 0.7), (5333.0, 0.45), (7040.0, 0.3))]), at)
+                  for at, v in ((0.0, 0.5), (0.11, 0.3), (0.19, 0.16))]),
     # Soft keypad tick.
     'tap': note(1800, 0.035, vol=0.25, wave_shape='pure', decay=0.008),
     # Bright two-note "ding-ding" for a right answer.

@@ -160,6 +160,21 @@ class AppTourTest {
         shot("parent-topics")
         scrollTo("Coin activity")
         shot("parent-coin-activity")
+
+        // Musab, Grade 3: Easy multiplication always has small enough numbers for a tally-mark clue.
+        click("Exit")
+        waitFor("Who's playing today?")
+        click("Musab")
+        waitFor("Play Maths")
+        click("Play Maths")
+        click("Grade 3")
+        click("Multiplication")
+        click("EASY")
+        waitForTag("key-check")
+        type("1") // every Easy Grade 3 product is at least 4
+        tap("key-check")
+        waitFor("Almost!")
+        shot("tally-clue")
     }
 
     // ---- helpers ----------------------------------------------------------------------------

@@ -2,8 +2,19 @@ package com.mathsquest.app.ui.components
 
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -114,4 +125,47 @@ fun SpeakerIcon(on: Boolean, tint: Color, modifier: Modifier = Modifier) {
             drawLine(tint, Offset(w * 0.9f, h * 0.36f), Offset(w * 0.66f, h * 0.64f), strokeWidth = w * 0.08f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
         }
     }
+}
+
+/**
+ * Content that flies in from off-screen ([fromX], [fromY] are directions: -1 left/top, 1 right/bottom),
+ * lands with a squash-and-bounce after [delayMillis], and calls [onLand] as it touches down.
+ * Replays whenever [key] changes. Shown in place immediately when animations are off.
+ */
+@Composable
+fun FlyIn(
+    key: Any,
+    fromX: Float,
+    fromY: Float,
+    delayMillis: Int,
+    modifier: Modifier = Modifier,
+    onLand: () -> Unit = {},
+    content: @Composable () -> Unit,
+) {
+    val enabled = animationsEnabled()
+    val progress = remember(key) { Animatable(if (enabled) 0f else 1f) }
+    val squash = remember(key) { Animatable(1f) }
+    val land by rememberUpdatedState(onLand)
+    LaunchedEffect(key) {
+        if (!enabled) return@LaunchedEffect
+        delay(delayMillis.toLong())
+        // Speeds up as it falls, like a dropped coin.
+        progress.animateTo(1f, tween(durationMillis = 430, easing = FastOutLinearInEasing))
+        land()
+        squash.snapTo(1.3f)
+        squash.animateTo(1f, spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessMediumLow))
+    }
+    val distance = with(LocalDensity.current) { 460.dp.toPx() }
+    Box(
+        modifier.graphicsLayer {
+            val p = progress.value
+            translationX = fromX * distance * (1f - p)
+            translationY = fromY * distance * (1f - p)
+            rotationZ = (fromX * 40f - fromY * 25f) * (1f - p)
+            alpha = if (p <= 0f) 0f else 1f
+            scaleX = squash.value
+            scaleY = 2f - squash.value
+        },
+        contentAlignment = Alignment.Center,
+    ) { content() }
 }

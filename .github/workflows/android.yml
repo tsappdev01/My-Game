@@ -98,7 +98,7 @@ jobs:
           mkdir -p screens && tar xf screens.tar -C screens --strip-components=2
           ls -la screens
           if grep -q "FAILURES" instrument.log; then cat instrument.log; exit 1; fi
-          test "$(ls screens/*.png | wc -l)" -ge 21
+          test "$(ls screens/*.png | wc -l)" -ge 22
 
       - name: Publish screenshots
         if: always()

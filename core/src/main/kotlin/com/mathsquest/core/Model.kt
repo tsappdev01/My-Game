@@ -51,4 +51,17 @@ data class Question(
     val steps: List<String>,
     /** Hint that stops just before the answer, shown after a first wrong answer. */
     val hint: List<String>,
+    /** Name of the method the clue teaches, e.g. "Times 9 trick" or "Count the tally marks". */
+    val technique: String = "",
+    /** Tally-mark picture for small numbers; null when the numbers are too big to draw. */
+    val tally: Tally? = null,
 )
+
+/**
+ * A tally-mark picture. Each entry in [groups] is one bundle of marks (drawn in fives).
+ * [crossedOut] marks at the end of the first bundle are crossed out (subtraction).
+ * [joiner] is drawn between bundles ("+" for addition; empty for groups of equal size).
+ */
+data class Tally(val groups: List<Int>, val crossedOut: Int = 0, val joiner: String = "") {
+    val total: Int get() = groups.sum()
+}

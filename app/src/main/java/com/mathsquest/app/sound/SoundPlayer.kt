@@ -18,6 +18,7 @@ class SoundPlayer @Inject constructor(@ApplicationContext context: Context) {
 
     enum class Sfx(@RawRes val res: Int, val volume: Float) {
         TAP(R.raw.sfx_tap, 0.35f),
+        DROP(R.raw.sfx_drop, 0.75f),
         CORRECT(R.raw.sfx_correct, 0.8f),
         COIN(R.raw.sfx_coin, 0.7f),
         WRONG(R.raw.sfx_wrong, 0.6f),
