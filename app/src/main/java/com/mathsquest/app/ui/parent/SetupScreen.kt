@@ -13,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,6 +33,7 @@ import com.mathsquest.app.ui.components.SkyScreen
 import com.mathsquest.app.ui.components.WhiteCard
 import com.mathsquest.app.ui.theme.MQ
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -42,8 +42,14 @@ class SetupViewModel @Inject constructor(
     private val repo: MathsQuestRepository,
     private val demo: DemoData,
 ) : ViewModel() {
-    suspend fun complete(pin: String, name: String, grade: Int, cap: Int) = repo.completeSetup(pin, name, grade, cap)
-    suspend fun loadDemo() = demo.setUpDemoFamily()
+    // Saves run in viewModelScope so the follow-up navigation always happens on the main thread.
+    fun complete(pin: String, name: String, grade: Int, cap: Int, onDone: () -> Unit) {
+        viewModelScope.launch { repo.completeSetup(pin, name, grade, cap); onDone() }
+    }
+
+    fun loadDemo(onDone: () -> Unit) {
+        viewModelScope.launch { demo.setUpDemoFamily(); onDone() }
+    }
 }
 
 /** First run: a parent gives consent, sets a PIN and adds the first child. */
@@ -56,7 +62,6 @@ fun SetupScreen(onDone: () -> Unit, vm: SetupViewModel = hiltViewModel()) {
     var grade by rememberSaveable { mutableIntStateOf(5) }
     var cap by rememberSaveable { mutableIntStateOf(MathsQuestRepository.DEFAULT_CAP) }
     var saving by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     val pinOk = pin.length == 4 && pin == pin2
     val ready = consent && pinOk && name.isNotBlank() && !saving
@@ -74,7 +79,7 @@ fun SetupScreen(onDone: () -> Unit, vm: SetupViewModel = hiltViewModel()) {
                 onClick = {
                     if (!saving) {
                         saving = true
-                        scope.launch { vm.loadDemo(); onDone() }
+                        vm.loadDemo(onDone)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -112,10 +117,7 @@ fun SetupScreen(onDone: () -> Unit, vm: SetupViewModel = hiltViewModel()) {
             enabled = ready,
             onClick = {
                 saving = true
-                scope.launch {
-                    vm.complete(pin, name, grade, cap)
-                    onDone()
-                }
+                vm.complete(pin, name, grade, cap, onDone)
             },
         )
     }

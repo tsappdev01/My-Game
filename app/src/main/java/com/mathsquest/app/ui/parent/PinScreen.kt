@@ -19,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,19 +41,21 @@ import com.mathsquest.app.ui.components.SkyScreen
 import com.mathsquest.app.ui.components.WhiteCard
 import com.mathsquest.app.ui.theme.MQ
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PinViewModel @Inject constructor(private val repo: MathsQuestRepository) : ViewModel() {
-    suspend fun check(pin: String) = repo.verifyPin(pin)
+    fun check(pin: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch { onResult(repo.verifyPin(pin)) }
+    }
 }
 
 @Composable
 fun PinScreen(onBack: () -> Unit, onUnlocked: () -> Unit, vm: PinViewModel = hiltViewModel()) {
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     fun press(d: String) {
         if (pin.length >= 4) return
@@ -62,9 +63,7 @@ fun PinScreen(onBack: () -> Unit, onUnlocked: () -> Unit, vm: PinViewModel = hil
         pin += d
         if (pin.length == 4) {
             val entered = pin
-            scope.launch {
-                if (vm.check(entered)) onUnlocked() else { error = true; pin = "" }
-            }
+            vm.check(entered) { ok -> if (ok) onUnlocked() else { error = true; pin = "" } }
         }
     }
 
