@@ -32,6 +32,7 @@ import androidx.lifecycle.viewModelScope
 import com.mathsquest.app.data.local.ChildEntity
 import com.mathsquest.app.data.local.CoinTransactionEntity
 import com.mathsquest.app.data.local.RewardRequestEntity
+import com.mathsquest.app.data.repo.DemoData
 import com.mathsquest.app.data.repo.MathsQuestRepository
 import com.mathsquest.app.data.repo.WeekSummary
 import com.mathsquest.app.ui.components.ChunkyButton
@@ -81,7 +82,10 @@ data class ParentState(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class ParentDashboardViewModel @Inject constructor(private val repo: MathsQuestRepository) : ViewModel() {
+class ParentDashboardViewModel @Inject constructor(
+    private val repo: MathsQuestRepository,
+    private val demo: DemoData,
+) : ViewModel() {
     private val selected = MutableStateFlow<Long?>(null)
 
     private val report = combine(repo.observeChildren(), selected) { kids, sel -> kids.firstOrNull { it.id == sel } ?: kids.firstOrNull() }
@@ -112,6 +116,7 @@ class ParentDashboardViewModel @Inject constructor(private val repo: MathsQuestR
     fun select(id: Long) { selected.value = id }
     fun decide(requestId: Long, approve: Boolean) = viewModelScope.launch { repo.decide(requestId, approve) }
     fun setCap(childId: Long, cap: Int) = viewModelScope.launch { repo.setMonthlyCap(childId, cap) }
+    fun addDemoFamily() = viewModelScope.launch { demo.addDemoFamily() }
 }
 
 @Composable
@@ -165,6 +170,9 @@ fun ParentDashboardScreen(onExit: () -> Unit, onAddChild: () -> Unit, vm: Parent
         s.report?.let { r -> Report(r, onCap = { vm.setCap(r.child.id, it) }) }
 
         ChunkyButton("Add a child", MQ.Green, onClick = onAddChild, height = 54.dp, fontSize = 18)
+        if (s.children.none { it.name in DemoData.NAMES }) {
+            OutlineButton("Add demo family (Musfira & Musab)", onClick = { vm.addDemoFamily() }, modifier = Modifier.fillMaxWidth())
+        }
         Text(
             "Your child only ever sees Gold Coins. 1 coin = AED 0.10 of reward value, and nothing is redeemed without your approval.",
             style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2F3F66), modifier = Modifier.padding(horizontal = 6.dp),

@@ -65,15 +65,19 @@ class MathsQuestRepository @Inject constructor(
     suspend fun completeSetup(pin: String, childName: String, grade: Int, monthlyCap: Int) {
         val salt = newSalt()
         db.withTransaction {
-            parentDao.upsert(ParentSettingsEntity(pinHash = hash(salt, pin), pinSalt = salt, consentAt = now()))
-            if (rewardDao.count() == 0) rewardDao.insertAll(DEFAULT_REWARDS)
+            parentDao.upsert(ParentSettingsEntity(pinHash = hashPin(salt, pin), pinSalt = salt, consentAt = now()))
+            ensureRewards()
             childDao.insert(newChild(childName, grade, monthlyCap, childDao.count()))
         }
     }
 
+    suspend fun ensureRewards() {
+        if (rewardDao.count() == 0) rewardDao.insertAll(DEFAULT_REWARDS)
+    }
+
     suspend fun verifyPin(pin: String): Boolean {
         val settings = parentDao.get() ?: return false
-        return hash(settings.pinSalt, pin) == settings.pinHash
+        return hashPin(settings.pinSalt, pin) == settings.pinHash
     }
 
     suspend fun addChild(name: String, grade: Int, monthlyCap: Int): Long =
@@ -257,7 +261,7 @@ class MathsQuestRepository @Inject constructor(
 
     private fun newSalt(): String = ByteArray(16).also { SecureRandom().nextBytes(it) }.toHex()
 
-    private fun hash(salt: String, pin: String): String =
+    fun hashPin(salt: String, pin: String): String =
         MessageDigest.getInstance("SHA-256").digest((salt + pin).toByteArray()).toHex()
 
     private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }

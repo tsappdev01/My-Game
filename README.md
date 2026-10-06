@@ -12,6 +12,10 @@ Every push to `main` builds a debug APK in GitHub Actions:
 2. Download the **maths-quest-debug-apk** artifact and unzip it.
 3. Copy `app-debug.apk` to an Android phone (Android 8.0+), allow "Install unknown apps", and install.
 
+## Demo family
+
+On the first-run setup screen, tap **Load demo family** to try the app with sample data: **Musfira** (Grade 5, 140 coins, 6-day streak, 82% right first time) and **Musab** (Grade 3, a screen-time request waiting for approval). The parent PIN is **1234**. If the app is already set up, use **Add demo family** at the bottom of the parent dashboard.
+
 ## Build locally
 
 Requires JDK 17 and the Android SDK (API 35).

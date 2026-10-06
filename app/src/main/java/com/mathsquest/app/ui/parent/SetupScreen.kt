@@ -24,7 +24,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import com.mathsquest.app.data.repo.DemoData
 import com.mathsquest.app.data.repo.MathsQuestRepository
+import com.mathsquest.app.ui.components.OutlineButton
 import com.mathsquest.app.ui.components.ChunkyButton
 import com.mathsquest.app.ui.components.LeoFace
 import com.mathsquest.app.ui.components.LeoSays
@@ -36,8 +38,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class SetupViewModel @Inject constructor(private val repo: MathsQuestRepository) : ViewModel() {
+class SetupViewModel @Inject constructor(
+    private val repo: MathsQuestRepository,
+    private val demo: DemoData,
+) : ViewModel() {
     suspend fun complete(pin: String, name: String, grade: Int, cap: Int) = repo.completeSetup(pin, name, grade, cap)
+    suspend fun loadDemo() = demo.setUpDemoFamily()
 }
 
 /** First run: a parent gives consent, sets a PIN and adds the first child. */
@@ -57,6 +63,23 @@ fun SetupScreen(onDone: () -> Unit, vm: SetupViewModel = hiltViewModel()) {
 
     SkyScreen {
         Text("Welcome, grown-up!", style = MaterialTheme.typography.headlineMedium, color = Color.White, modifier = Modifier.fillMaxWidth())
+        WhiteCard(spacing = 8.dp) {
+            Text("Just looking around?", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Load a demo family: Musfira (Grade 5) and Musab (Grade 3), with a week of practice, coins and a reward waiting for approval. The parent PIN will be 1234.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            OutlineButton(
+                "Load demo family",
+                onClick = {
+                    if (!saving) {
+                        saving = true
+                        scope.launch { vm.loadDemo(); onDone() }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         WhiteCard {
             LeoSays(LeoFace.Reporter, "Let's set things up. This takes about a minute.", label = "Parent setup", bob = false)
             Text("1. Your consent", style = MaterialTheme.typography.titleLarge)

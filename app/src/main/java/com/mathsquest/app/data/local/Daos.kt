@@ -18,6 +18,9 @@ interface ChildDao {
     @Query("SELECT * FROM children WHERE id = :id")
     suspend fun get(id: Long): ChildEntity?
 
+    @Query("SELECT COUNT(*) FROM children WHERE name = :name")
+    suspend fun countNamed(name: String): Int
+
     @Query("SELECT COUNT(*) FROM children")
     suspend fun count(): Int
 
@@ -55,6 +58,9 @@ interface AttemptDao {
     @Insert
     suspend fun insert(attempt: AnswerAttemptEntity)
 
+    @Insert
+    suspend fun insertAll(attempts: List<AnswerAttemptEntity>)
+
     @Query(
         "SELECT operation, COUNT(*) AS answered, COALESCE(SUM(CASE WHEN correct = 1 THEN 1 ELSE 0 END), 0) AS correctFirstTry " +
             "FROM answer_attempts WHERE childId = :childId AND attempt = 1 GROUP BY operation",
@@ -84,6 +90,9 @@ interface RewardDao {
 
     @Query("SELECT * FROM rewards WHERE id = :id")
     suspend fun get(id: Long): RewardEntity?
+
+    @Query("SELECT * FROM rewards WHERE title = :title LIMIT 1")
+    suspend fun byTitle(title: String): RewardEntity?
 }
 
 @Dao
