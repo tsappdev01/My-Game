@@ -11,3 +11,6 @@ build/
 *.aab
 *.jks
 *.keystore
+
+# Local downloads of CI builds and screenshots
+/dist/
