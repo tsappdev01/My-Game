@@ -135,7 +135,7 @@ class DemoData @Inject constructor(
             db.coinDao().insert(
                 CoinTransactionEntity(
                     childId = childId, questionId = null, difficulty = null, coins = spec.earlierCoins,
-                    transactionType = TxType.EARN, reference = "Practice earlier this month", createdDate = monthStart,
+                    transactionType = TxType.OPENING, reference = "Earned earlier this month", createdDate = monthStart,
                 ),
             )
             spec.recent.forEachIndexed { i, (ref, coins, ago) ->

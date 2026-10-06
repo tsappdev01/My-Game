@@ -49,6 +49,10 @@ interface CoinDao {
     @Query("SELECT COALESCE(SUM(coins), 0) FROM coin_transactions WHERE childId = :childId AND coins > 0 AND createdDate >= :since")
     suspend fun earnedSince(childId: Long, since: Long): Int
 
+    /** Coins earned through play since [since]; excludes opening balances. */
+    @Query("SELECT COALESCE(SUM(coins), 0) FROM coin_transactions WHERE childId = :childId AND coins > 0 AND transactionType != 'OPENING' AND createdDate >= :since")
+    fun observePlayEarnedSince(childId: Long, since: Long): Flow<Int>
+
     @Query("SELECT * FROM coin_transactions WHERE childId = :childId ORDER BY createdDate DESC, transactionId DESC LIMIT :limit")
     fun observeRecent(childId: Long, limit: Int): Flow<List<CoinTransactionEntity>>
 }

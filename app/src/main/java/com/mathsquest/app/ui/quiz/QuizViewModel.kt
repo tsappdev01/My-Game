@@ -161,7 +161,7 @@ class QuizViewModel @Inject constructor(
                 val perfect = s.firstTryRight == s.total
                 val result = repo.finishRound(childId, perfect, daily)
                 val notes = buildList {
-                    if (result.streakHit) add("${result.streak} days in a row! " + if (result.bonusCoins > 0) "+${result.bonusCoins} bonus coins and the 7-Day Streak badge." else "You earned the 7-Day Streak badge.")
+                    if (result.streakHit) add("${result.streak} days in a row! " + if (result.bonusCoins > 0) "+${coins(result.bonusCoins)} bonus and the 7-Day Streak badge." else "You earned the 7-Day Streak badge.")
                     if (CoinReason.PRACTICE in reasons) add("This grade is practice for you. Pick Grade ${childGrade - 1} or higher to earn coins.")
                     val fast = reasons.count { it == CoinReason.TOO_FAST }
                     if (fast > 0) add("$fast ${if (fast == 1) "answer was" else "answers were"} too quick to earn coins. Take a moment on each one.")

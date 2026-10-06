@@ -11,6 +11,8 @@ build/
 *.aab
 *.jks
 *.keystore
+# Shared debug key so every CI build installs over the last one. Never use it for release.
+!app/debug.keystore
 
 # Local downloads of CI builds and screenshots
 /dist/

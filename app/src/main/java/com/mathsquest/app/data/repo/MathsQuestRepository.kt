@@ -216,7 +216,7 @@ class MathsQuestRepository @Inject constructor(
         return combine(
             attemptDao.observeWeek(childId, since),
             attemptDao.observeStudyMillis(childId, since),
-            coinDao.observeEarnedSince(childId, since),
+            coinDao.observePlayEarnedSince(childId, since),
         ) { totals, millis, coins -> WeekSummary(totals.answered, totals.correctFirstTry, millis, coins) }
     }
 

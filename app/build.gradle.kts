@@ -22,6 +22,17 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"https://api.mathsquest.example/\"")
     }
 
+    signingConfigs {
+        // Shared, public debug key: lets each CI build install over the previous one.
+        // Release builds must use a private key kept out of the repository.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true

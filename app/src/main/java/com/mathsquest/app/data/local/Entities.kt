@@ -31,7 +31,7 @@ data class CoinTransactionEntity(
     val questionId: String?,
     val difficulty: Int?,
     val coins: Int,
-    /** EARN, BONUS or REDEEM. */
+    /** EARN, BONUS, REDEEM or OPENING. */
     val transactionType: String,
     /** Human-readable reference, e.g. "× Grade 5 · Moderate" or "Reward: Ice cream outing". */
     val reference: String,
@@ -87,6 +87,8 @@ object TxType {
     const val EARN = "EARN"
     const val BONUS = "BONUS"
     const val REDEEM = "REDEEM"
+    /** Coins earned before tracking began (e.g. imported). Counts toward balance and the monthly limit, not weekly activity. */
+    const val OPENING = "OPENING"
 }
 
 object RequestStatus {
